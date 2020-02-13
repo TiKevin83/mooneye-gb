@@ -1,22 +1,18 @@
-; Copyright (C) 2014-2019 Joonas Javanainen <joonas.javanainen@gmail.com>
+; This file is part of Mooneye GB.
+; Copyright (C) 2014-2016 Joonas Javanainen <joonas.javanainen@gmail.com>
 ;
-; Permission is hereby granted, free of charge, to any person obtaining a copy
-; of this software and associated documentation files (the "Software"), to deal
-; in the Software without restriction, including without limitation the rights
-; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-; copies of the Software, and to permit persons to whom the Software is
-; furnished to do so, subject to the following conditions:
+; Mooneye GB is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
 ;
-; The above copyright notice and this permission notice shall be included in
-; all copies or substantial portions of the Software.
+; Mooneye GB is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
 ;
-; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-; SOFTWARE.
+; You should have received a copy of the GNU General Public License
+; along with Mooneye GB.  If not, see <http://www.gnu.org/licenses/>.
 
 ; This tests what happens in the first few cycles of OAM DMA.
 ; Also, when OAM DMA is restarted while a previous one is running, the previous one
@@ -36,6 +32,7 @@
 ;   pass: DMG, MGB, SGB, SGB2, CGB, AGB, AGS
 ;   fail: -
 
+.incdir "../common"
 .include "common.s"
 
 .macro wait_dma_finish
@@ -45,10 +42,11 @@
 .endm
 
   di
-  call disable_lcd_safe
+  wait_vblank
+  disable_lcd
 
   ld hl, VRAM
-  ld bc, OAM_LEN
+  ld bc, $A0
   ld a, $D7   ; RST $10
   call memset
 
@@ -87,17 +85,17 @@ test_round1:
   jp OAM - 1
 
 fail_round1:
-  quit_failure_string "FAIL: ROUND 1 RST $10"
+  test_failure_string "FAIL: ROUND 1 RST $10"
 
 finish_round1:
   ld a, (OAM)
   ld (round1_oam), a
   ld a, b
   ld (round1_b), a
-  ld sp, $FFFE
 
 test_round2:
-  call disable_lcd_safe
+  wait_vblank
+  disable_lcd
 
   ld hl, vector_10
   ld a, <fail_round2
@@ -111,7 +109,7 @@ test_round2:
   ld (hl+), a
 
   ld hl, OAM
-  ld bc, OAM_LEN
+  ld bc, $A0
   ld a, $04   ; INC B
   call memset
 
@@ -135,7 +133,7 @@ test_round2:
   jp OAM - 2
 
 fail_round2:
-  quit_failure_string "FAIL: ROUND 2 RST $10"
+  test_failure_string "FAIL: ROUND 2 RST $10"
 
 finish_round2:
   ld a, (OAM)
@@ -147,12 +145,12 @@ test_finish:
   ld b, a
   ld a, (round1_b)  
   ld c, a
-  setup_assertions
+  save_results
   assert_b $D7
   assert_c $01
   assert_d $D7
   assert_e $00
-  quit_check_asserts
+  jp process_results
 
 .org $10
   wait_dma_finish
@@ -174,7 +172,7 @@ test_finish:
   ld l, e
   jp hl
 
-.ramsection "Test-State" slot HRAM_SLOT
+.ramsection "Test-State" slot 2
   vector_10 dw
   vector_38 dw
   round1_oam db

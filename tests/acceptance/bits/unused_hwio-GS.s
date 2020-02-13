@@ -1,22 +1,18 @@
-; Copyright (C) 2014-2019 Joonas Javanainen <joonas.javanainen@gmail.com>
+; This file is part of Mooneye GB.
+; Copyright (C) 2014-2016 Joonas Javanainen <joonas.javanainen@gmail.com>
 ;
-; Permission is hereby granted, free of charge, to any person obtaining a copy
-; of this software and associated documentation files (the "Software"), to deal
-; in the Software without restriction, including without limitation the rights
-; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-; copies of the Software, and to permit persons to whom the Software is
-; furnished to do so, subject to the following conditions:
+; Mooneye GB is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
 ;
-; The above copyright notice and this permission notice shall be included in
-; all copies or substantial portions of the Software.
+; Mooneye GB is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
 ;
-; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-; SOFTWARE.
+; You should have received a copy of the GNU General Public License
+; along with Mooneye GB.  If not, see <http://www.gnu.org/licenses/>.
 
 ; This test checks all unused bits in working $FFxx IO,
 ; and all unused $FFxx IO. Unused bits and unused IO all return 1s.
@@ -33,6 +29,7 @@
 ;   pass: DMG, MGB, SGB, SGB2
 ;   fail: CGB, AGB, AGS
 
+.incdir "../../common"
 .include "common.s"
 
 .macro test ARGS reg mask write expect
@@ -41,8 +38,6 @@
   ld (test_addr), a
   ld a, h
   ld (test_addr + 1), a
-
-  ld sp, DEFAULT_SP
 
   call run_testcase
   jr _finish_\@
@@ -127,7 +122,7 @@ _finish_\@:
   test_unmapped $FF4C + offset
 .endr
 
-  quit_ok
+  test_ok
 
 ; Inputs:
 ;   HL: test data address
@@ -162,15 +157,16 @@ run_testcase:
   ld (test_got), a
 
   call fetch_test_data
+  print_results test_failure_cb
 
-  quit_inline
+test_failure_cb:
   print_string_literal "TEST FAILED"
   call print_newline
   call print_newline
   print_string_literal "$FF"
 
   ld a, (test_reg)
-  call print_hex8
+  call print_a
 
   print_string_literal "       76543210"
   call print_newline
@@ -247,7 +243,7 @@ _print_one:
 _print_bit:
   push bc
   push de
-  call print_hex4
+  call print_digit
   pop de
   pop bc
   jr _next
@@ -260,7 +256,7 @@ _next:
 
   ret
 
-.ramsection "Test-State" slot HRAM_SLOT
+.ramsection "Test-State" slot 2
   test_addr dw
   test_got db
   test_reg db
